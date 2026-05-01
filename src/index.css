@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+@theme {
+  --font-retro: "Press Start 2P", ui-monospace, SFMono-Regular, monospace;
+}
