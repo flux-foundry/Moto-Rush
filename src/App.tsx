@@ -320,7 +320,16 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // UI React State
-  const [uiState, setUiState] = useState<'MENU' | 'COUNTDOWN' | 'PLAYING' | 'GAMEOVER' | 'PAUSED'>('MENU');
+  const [uiState, setUiState] = useState<'MENU' | 'OPTIONS' | 'COUNTDOWN' | 'PLAYING' | 'GAMEOVER' | 'PAUSED'>('MENU');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+     const onFullscreenChange = () => {
+         setIsFullscreen(!!document.fullscreenElement);
+     }
+     document.addEventListener('fullscreenchange', onFullscreenChange);
+     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
   const [controlMode, setControlMode] = useState<'DRAG' | 'TILT'>('DRAG');
   const [scoreData, setScoreData] = useState({ score: 0, highScore: parseInt(localStorage.getItem('retroBikeHi') || '0', 10) });
   const [volumes, setVolumes] = useState({ sfx: 100, bgm: 100 });
@@ -1856,8 +1865,18 @@ export default function App() {
     };
   }, [uiState, controlMode]);
 
+  const toggleFullscreen = () => {
+      if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+              console.log(`Error attempting to enable fullscreen: ${err.message} (${err.name})`);
+          });
+      } else {
+          document.exitFullscreen();
+      }
+  };
+
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden touch-none font-retro select-none">
+    <div className="relative w-full h-[100dvh] bg-black overflow-hidden touch-none font-retro select-none">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 
       {/* OVERLAYS */}
@@ -1868,26 +1887,70 @@ export default function App() {
           
           <button 
             onClick={startGame}
-            className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white text-xl md:text-2xl uppercase tracking-wider mb-12 shadow-[4px_4px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
+            className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white text-xl md:text-2xl uppercase tracking-wider mb-6 shadow-[4px_4px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
           >
             INSERT COIN (PLAY)
           </button>
+          
+          <button 
+            onClick={() => setUiState('OPTIONS')}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-lg uppercase tracking-wider mb-6 shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
+          >
+            OPTIONS
+          </button>
 
-          <div className="bg-gray-900/80 p-6 border-2 border-gray-700 w-full max-w-sm space-y-6 text-sm">
-            <div className="flex justify-between items-center">
-              <span>CONTROLS</span>
-              <button 
-                onClick={() => setControlMode(prev => prev === 'DRAG' ? 'TILT' : 'DRAG')}
-                className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700"
-              >
-                {controlMode}
-              </button>
+          <button 
+             onClick={() => {
+                if(window.confirm('Are you sure you want to exit?')) {
+                    document.body.innerHTML = '<div style="display:flex; height:100dvh; width:100vw; background:black; color:white; align-items:center; justify-content:center; font-family:monospace; font-size:24px;">GAME EXITED.</div>';
+                }
+             }}
+             className="mt-4 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm uppercase tracking-wider shadow-[2px_2px_0_#555] active:translate-y-1 active:shadow-[0_0_0_#555] transition-all"
+          >
+             EXIT GAME
+          </button>
+        </div>
+      )}
+
+      {uiState === 'OPTIONS' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 text-white backdrop-blur-md">
+          <h1 className="text-3xl text-yellow-400 mb-8 tracking-widest text-center">OPTIONS</h1>
+          
+          <div className="bg-gray-900/80 p-6 border-2 border-gray-700 w-full max-w-sm space-y-6 text-sm mb-8 overflow-y-auto max-h-[60vh]">
+            {/* Display/Orientation */}
+            <div className="space-y-4">
+              <h2 className="text-gray-400 border-b border-gray-700 pb-1">DISPLAY</h2>
+              <div className="flex justify-between items-center">
+                <span>FULLSCREEN</span>
+                <button 
+                  onClick={toggleFullscreen}
+                  className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
+                >
+                  {isFullscreen ? 'ON' : 'OFF'}
+                </button>
+              </div>
             </div>
-            <div className="flex justify-between items-center text-xs text-gray-400">
-               {controlMode === 'DRAG' ? '< Hold to Accelerate, Drag to Steer >' : '< Hold to Accelerate, Tilt to Steer >'}
+
+            {/* Controls */}
+            <div className="space-y-4 pt-2">
+              <h2 className="text-gray-400 border-b border-gray-700 pb-1">CONTROLS</h2>
+              <div className="flex justify-between items-center">
+                <span>MODE</span>
+                <button 
+                  onClick={() => setControlMode(prev => prev === 'DRAG' ? 'TILT' : 'DRAG')}
+                  className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
+                >
+                  {controlMode}
+                </button>
+              </div>
+              <div className="text-[10px] text-gray-500 leading-tight">
+                {controlMode === 'DRAG' ? 'Hold screen to accelerate, drag left/right to steer.' : 'Hold screen to accelerate, tilt device to steer.'}
+              </div>
             </div>
             
-            <div className="space-y-4 pt-4 border-t border-gray-700">
+            {/* Audio */}
+            <div className="space-y-4 pt-2">
+              <h2 className="text-gray-400 border-b border-gray-700 pb-1">AUDIO</h2>
               <div className="flex justify-between items-center">
                 <span>SFX</span>
                 <input type="range" min="0" max="100" value={volumes.sfx} onChange={e => setVolumes({...volumes, sfx: parseInt(e.target.value)})} className="w-32 accent-red-500" />
@@ -1898,15 +1961,12 @@ export default function App() {
               </div>
             </div>
           </div>
+
           <button 
-             onClick={() => {
-                if(window.confirm('Are you sure you want to exit?')) {
-                    document.body.innerHTML = '<div style="display:flex; height:100vh; width:100vw; background:black; color:white; align-items:center; justify-content:center; font-family:monospace; font-size:24px;">GAME EXITED.</div>';
-                }
-             }}
-             className="mt-8 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm uppercase tracking-wider shadow-[2px_2px_0_#555] active:translate-y-1 active:shadow-[0_0_0_#555] transition-all"
+             onClick={() => setUiState('MENU')}
+             className="px-8 py-3 bg-red-600 hover:bg-red-500 text-white text-lg uppercase tracking-wider shadow-[4px_4px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
           >
-             EXIT GAME
+             BACK
           </button>
         </div>
       )}
@@ -1950,7 +2010,10 @@ export default function App() {
           </button>
           
           {/* Game Controls */}
-          <div className="absolute bottom-6 right-6 flex space-x-4 z-20 pointer-events-auto touch-none">
+          <div 
+             className="absolute flex space-x-3 sm:space-x-4 z-20 pointer-events-auto touch-none"
+             style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))', right: 'max(1.5rem, env(safe-area-inset-right))' }}
+          >
             {/* Nitro Button */}
             <button
               id="nitroBtn"
@@ -1981,12 +2044,12 @@ export default function App() {
                   st.nitroMode = 'OFF';
                   st.isNitroActive = false;
               }}
-              className="w-20 h-20 border-4 flex flex-col justify-center items-center rounded-full active:scale-95 transition-none outline-none bg-blue-600/80 border-blue-400 shadow-[0_0_20px_rgba(52,152,219,0.6)] text-white"
+              className="w-16 h-16 sm:w-20 sm:h-20 border-2 sm:border-4 flex flex-col justify-center items-center rounded-full active:scale-95 transition-none outline-none bg-blue-600/80 border-blue-400 shadow-[0_0_15px_rgba(52,152,219,0.5)] text-white"
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-1 pointer-events-none">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-0 sm:mb-1 pointer-events-none w-5 h-5 sm:w-7 sm:h-7">
                 <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
               </svg>
-              <span className="text-[10px] font-bold tracking-widest leading-none pointer-events-none mt-1 text-center opacity-90"><span className="text-[7.5px] block font-normal opacity-70">TAP/HOLD</span>N2O</span>
+              <span className="text-[8px] sm:text-[10px] font-bold tracking-widest leading-none pointer-events-none mt-1 text-center opacity-90"><span className="text-[6px] sm:text-[7.5px] block font-normal opacity-70">TAP/HOLD</span>N2O</span>
             </button>
 
             {/* Drift Button */}
@@ -2000,13 +2063,13 @@ export default function App() {
                   e.stopPropagation();
                   engineRef.current.isDrifting = false;
               }}
-              className="w-20 h-20 bg-red-600/80 border-4 border-red-400 text-white flex flex-col justify-center items-center rounded-full shadow-[0_0_20px_rgba(255,0,0,0.6)] active:bg-red-500 active:scale-95 transition-all outline-none"
+              className="w-16 h-16 sm:w-20 sm:h-20 bg-red-600/80 border-2 sm:border-4 border-red-400 text-white flex flex-col justify-center items-center rounded-full shadow-[0_0_15px_rgba(255,0,0,0.5)] active:bg-red-500 active:scale-95 transition-all outline-none"
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-1 pointer-events-none">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-0 sm:mb-1 pointer-events-none w-5 h-5 sm:w-7 sm:h-7">
                 <path d="M14 19c-3 0-5-2-5-5s2-5 5-5 5-2 5-5"/>
                 <path d="M10 19c-3 0-5-2-5-5s2-5 5-5 5-2 5-5"/>
               </svg>
-              <span className="text-[9px] font-bold tracking-widest opacity-80 pointer-events-none">DRIFT</span>
+              <span className="text-[8px] sm:text-[9px] font-bold tracking-widest opacity-80 pointer-events-none">DRIFT</span>
             </button>
           </div>
         </>
@@ -2016,8 +2079,41 @@ export default function App() {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 text-white backdrop-blur-sm">
           <h1 className="text-4xl text-yellow-400 mb-8 tracking-widest text-center">PAUSED</h1>
           
-          <div className="bg-gray-900/80 p-6 border-2 border-gray-700 w-full max-w-sm space-y-6 text-sm mb-8">
+          <div className="bg-gray-900/80 p-6 border-2 border-gray-700 w-full max-w-sm space-y-6 text-sm mb-8 overflow-y-auto max-h-[60vh]">
+            {/* Display/Orientation */}
             <div className="space-y-4">
+              <h2 className="text-gray-400 border-b border-gray-700 pb-1">DISPLAY</h2>
+              <div className="flex justify-between items-center">
+                <span>FULLSCREEN</span>
+                <button 
+                  onClick={toggleFullscreen}
+                  className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
+                >
+                  {isFullscreen ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-4 pt-2">
+              <h2 className="text-gray-400 border-b border-gray-700 pb-1">CONTROLS</h2>
+              <div className="flex justify-between items-center">
+                <span>MODE</span>
+                <button 
+                  onClick={() => setControlMode(prev => prev === 'DRAG' ? 'TILT' : 'DRAG')}
+                  className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
+                >
+                  {controlMode}
+                </button>
+              </div>
+              <div className="text-[10px] text-gray-500 leading-tight">
+                {controlMode === 'DRAG' ? 'Hold screen to accelerate, drag left/right to steer.' : 'Hold screen to accelerate, tilt device to steer.'}
+              </div>
+            </div>
+
+            {/* Audio */}
+            <div className="space-y-4 pt-2">
+              <h2 className="text-gray-400 border-b border-gray-700 pb-1">AUDIO</h2>
               <div className="flex justify-between items-center">
                 <span>SFX</span>
                 <input type="range" min="0" max="100" value={volumes.sfx} onChange={e => setVolumes({...volumes, sfx: parseInt(e.target.value)})} className="w-32 accent-red-500" />
