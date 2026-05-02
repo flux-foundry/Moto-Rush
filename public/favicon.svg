@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Sky / Background -->
+  <rect width="64" height="64" fill="#0f0f1b"/>
+  <!-- Sunset -->
+  <circle cx="32" cy="24" r="18" fill="url(#sunGrad)"/>
+  <linearGradient id="sunGrad" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#ff00ff"/>
+    <stop offset="100%" stop-color="#ff9900"/>
+  </linearGradient>
+  <!-- Sun stripes -->
+  <rect x="14" y="24" width="36" height="2" fill="#0f0f1b"/>
+  <rect x="14" y="28" width="36" height="3" fill="#0f0f1b"/>
+  <rect x="14" y="33" width="36" height="4" fill="#0f0f1b"/>
+  <!-- Road -->
+  <path d="M 0 64 L 28 36 L 36 36 L 64 64 Z" fill="#1a1a2e"/>
+  <!-- Grid Lines -->
+  <line x1="0" y1="64" x2="28" y2="36" stroke="#ff0055" stroke-width="1.5"/>
+  <line x1="64" y1="64" x2="36" y2="36" stroke="#ff0055" stroke-width="1.5"/>
+  <line x1="16" y1="64" x2="30" y2="36" stroke="#ff0055" stroke-width="1"/>
+  <line x1="48" y1="64" x2="34" y2="36" stroke="#ff0055" stroke-width="1"/>
+  <!-- Center Line -->
+  <line x1="32" y1="36" x2="32" y2="64" stroke="#00ffff" stroke-width="2" stroke-dasharray="6,4"/>
+  <!-- Bike Silhouette Base -->
+  <rect x="26" y="46" width="12" height="10" rx="3" fill="#111" stroke="#333" stroke-width="1"/>
+  <!-- Rider Silhouette -->
+  <circle cx="32" cy="38" r="5" fill="#111" stroke="#ff0055" stroke-width="1"/>
+  <path d="M 28 42 L 36 42 L 35 48 L 29 48 Z" fill="#111"/>
+  <path d="M 28 42 L 36 42 L 35 48 L 29 48 Z" fill="#111" stroke="#00ffff" stroke-width="1"/>
+  <!-- Bike Taillights -->
+  <rect x="27" y="50" width="3" height="1.5" fill="#ff0055"/>
+  <rect x="34" y="50" width="3" height="1.5" fill="#ff0055"/>
+  <rect x="30" y="52" width="4" height="2" fill="#fff" opacity="0.8"/>
+  <!-- Smoke / Glow Effect -->
+  <circle cx="28" cy="56" r="3" fill="#fff" opacity="0.4"/>
+  <circle cx="36" cy="56" r="3" fill="#fff" opacity="0.4"/>
+</svg>
