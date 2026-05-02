@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff007f"/>
+      <stop offset="100%" stop-color="#ffaa00"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Sky -->
+  <rect width="512" height="256" fill="#0b0b1a"/>
+  
+  <!-- Sun -->
+  <circle cx="256" cy="256" r="140" fill="url(#sunGrad)"/>
+  
+  <!-- Sun Grid lines -->
+  <rect x="116" y="226" width="280" height="8" fill="#0b0b1a"/>
+  <rect x="116" y="240" width="280" height="12" fill="#0b0b1a"/>
+
+  <!-- Ground -->
+  <rect y="256" width="512" height="256" fill="#1a1a2e"/>
+
+  <!-- Ground Grid -->
+  <g stroke="#ff007f" stroke-width="2" opacity="0.5">
+    <line x1="0" y1="280" x2="512" y2="280"/>
+    <line x1="0" y1="320" x2="512" y2="320"/>
+    <line x1="0" y1="380" x2="512" y2="380"/>
+    <line x1="0" y1="460" x2="512" y2="460"/>
+    
+    <line x1="256" y1="256" x2="256" y2="512"/>
+    <line x1="256" y1="256" x2="156" y2="512"/>
+    <line x1="256" y1="256" x2="356" y2="512"/>
+    <line x1="256" y1="256" x2="56" y2="512"/>
+    <line x1="256" y1="256" x2="456" y2="512"/>
+    <line x1="256" y1="256" x2="-44" y2="512"/>
+    <line x1="256" y1="256" x2="556" y2="512"/>
+  </g>
+
+  <!-- Road -->
+  <polygon points="236,256 276,256 412,512 100,512" fill="#111"/>
+  <!-- Road lines -->
+  <polygon points="248,256 264,256 276,512 236,512" fill="#fff" opacity="0.2"/>
+  <polygon points="252,256 260,256 264,512 248,512" fill="#fff" opacity="0.8"/>
+  
+  <rect x="236" y="320" width="40" height="40" fill="#111"/>
+  <rect x="228" y="420" width="56" height="60" fill="#111"/>
+
+  <!-- Bike details using robust flat design -->
+  <!-- Shadow -->
+  <ellipse cx="256" cy="440" rx="50" ry="10" fill="#000" opacity="0.8"/>
+  <!-- Tires -->
+  <rect x="220" y="380" width="24" height="60" fill="#222" rx="4"/>
+  <rect x="268" y="380" width="24" height="60" fill="#222" rx="4"/>
+  <!-- Tail light -->
+  <rect x="226" y="350" width="60" height="15" fill="#f00" rx="2"/>
+  <rect x="236" y="352" width="40" height="8" fill="#ffaa00" rx="2"/>
+  <!-- Exhaust -->
+  <rect x="210" y="400" width="10" height="20" fill="#777" rx="2"/>
+  <rect x="292" y="400" width="10" height="20" fill="#777" rx="2"/>
+  <!-- Rider/Chassis -->
+  <path d="M 230,370 L 282,370 L 270,300 L 242,300 Z" fill="#3498db"/>
+  <!-- Bike neon trim -->
+  <path d="M 226,368 L 286,368" stroke="#0ff" stroke-width="4"/>
+  <!-- Helmet -->
+  <circle cx="256" cy="280" r="24" fill="#eee"/>
+  <rect x="236" y="270" width="40" height="15" fill="#111" rx="4"/>
+  <!-- Helmet stripe -->
+  <rect x="252" y="260" width="8" height="30" fill="#e74c3c"/>
+
+</svg>

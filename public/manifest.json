@@ -1,0 +1,21 @@
+{
+  "name": "Retro Moto Rush",
+  "short_name": "Moto Rush",
+  "description": "Retro Arcade Racing Game",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#e02424",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
