@@ -8,6 +8,7 @@ class AudioEngine {
   bgmVol = 0.5;
   sfxVol = 0.5;
   isPlaying = false;
+  menuBgmPlaying = false;
   nextNoteTime = 0;
   currentStep = 0;
 
@@ -57,12 +58,63 @@ class AudioEngine {
   }
 
   scheduleMusic() {
-    if (!this.ctx || !this.isPlaying || this.bgmVol <= 0) return;
+    if (!this.ctx || this.bgmVol <= 0) return;
+    if (!this.isPlaying && !this.menuBgmPlaying) return;
+    
     while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
-        this.playDopeNote(this.currentStep, this.nextNoteTime);
+        if (this.isPlaying) {
+            this.playDopeNote(this.currentStep, this.nextNoteTime);
+        } else if (this.menuBgmPlaying) {
+            this.playMenuNote(this.currentStep, this.nextNoteTime);
+        }
         this.currentStep++;
         this.nextNoteTime += 0.125; // 16th notes
     }
+  }
+
+  playMenuNote(step: number, time: number) {
+      if (!this.ctx) return;
+      
+      // Catchy Synthwave Arp for Menu
+      const arpNotes = [261.63, 311.13, 392.00, 311.13, 261.63, 392.00, 466.16, 392.00]; // C minor 7 arp
+      const freq = arpNotes[step % arpNotes.length];
+      
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      // Layer a square and sawtooth
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, time);
+      filter.frequency.exponentialRampToValueAtTime(200, time + 0.1);
+      
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      
+      gain.gain.setValueAtTime(this.bgmVol * 0.15, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+      
+      osc.start(time);
+      osc.stop(time + 0.15);
+
+      // Add a slight drum kick on every 4th step
+      if (step % 8 === 0 || step % 8 === 3 || step % 8 === 6) {
+          const kOsc = this.ctx.createOscillator();
+          const kGain = this.ctx.createGain();
+          kOsc.type = 'sine';
+          kOsc.frequency.setValueAtTime(150, time);
+          kOsc.frequency.exponentialRampToValueAtTime(0.01, time + 0.1);
+          kGain.gain.setValueAtTime(this.bgmVol * 0.4, time);
+          kGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+          kOsc.connect(kGain);
+          kGain.connect(this.ctx.destination);
+          kOsc.start(time);
+          kOsc.stop(time + 0.1);
+      }
   }
 
   playDopeNote(step: number, time: number) {
@@ -250,6 +302,27 @@ class AudioEngine {
     } catch(e){}
   }
 
+  playClick() {
+    // initialize if not already
+    this.init();
+    if (this.ctx?.state === 'suspended') this.ctx.resume();
+    
+    if (!this.ctx || this.sfxVol <= 0) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(this.sfxVol * 0.5, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.05);
+    } catch(e){}
+  }
+
   playVoice(text: string) {
       if (this.sfxVol <= 0) return;
       if ('speechSynthesis' in window) {
@@ -320,7 +393,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // UI React State
-  const [uiState, setUiState] = useState<'MENU' | 'OPTIONS' | 'COUNTDOWN' | 'PLAYING' | 'GAMEOVER' | 'PAUSED'>('MENU');
+  const [uiState, setUiState] = useState<'MENU' | 'OPTIONS' | 'COUNTDOWN' | 'PLAYING' | 'GAMEOVER' | 'PAUSED' | 'EXIT_CONFIRM' | 'EXITED'>('MENU');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -331,8 +404,19 @@ export default function App() {
      return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
   const [controlMode, setControlMode] = useState<'DRAG' | 'TILT'>('DRAG');
-  const [scoreData, setScoreData] = useState({ score: 0, highScore: parseInt(localStorage.getItem('retroBikeHi') || '0', 10) });
+  const [scoreData, setScoreData] = useState({ 
+    score: 0, 
+    highScore: parseInt(localStorage.getItem('retroBikeHi') || '0', 10),
+    distance: 0 
+  });
   const [volumes, setVolumes] = useState({ sfx: 100, bgm: 100 });
+  const [scanlinesEnabled, setScanlinesEnabled] = useState(localStorage.getItem('retroBikeScanlines') !== 'false');
+  const scanlinesRef = useRef(scanlinesEnabled);
+
+  useEffect(() => {
+    scanlinesRef.current = scanlinesEnabled;
+    localStorage.setItem('retroBikeScanlines', String(scanlinesEnabled));
+  }, [scanlinesEnabled]);
 
   // Refs for Game Loop state (avoid React re-renders)
   const engineRef = useRef({
@@ -377,6 +461,17 @@ export default function App() {
     audio.bgmVol = volumes.bgm / 100;
     audio.sfxVol = volumes.sfx / 100;
   }, [volumes]);
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest('button');
+      if (target && target.id !== 'nitroBtn' && target.id !== 'driftBtn') {
+        audio.playClick();
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
 
   const startGame = async () => {
     // Request Tilt Permission if needed (MUST be in user action)
@@ -487,7 +582,11 @@ export default function App() {
     setScoreData(prev => {
       const hs = Math.max(prev.highScore, Math.floor(engineRef.current.score));
       localStorage.setItem('retroBikeHi', hs.toString());
-      return { score: Math.floor(engineRef.current.score), highScore: hs };
+      return { 
+        score: Math.floor(engineRef.current.score), 
+        highScore: hs,
+        distance: Math.floor(engineRef.current.distanceScroll / 100)
+      };
     });
   };
 
@@ -914,6 +1013,8 @@ export default function App() {
         if (st.flashTimer > 0) st.flashTimer -= dt;
         if (st.shake > 0) st.shake = Math.max(0, st.shake - 60 * dt);
 
+        const diffMult = Math.min(4.0, 1 + (st.score / 5000));
+
         // Nitro Auto Mode Logic
         if (st.nitroMode === 'AUTO') {
             st.isNitroActive = true;
@@ -1027,11 +1128,16 @@ export default function App() {
              st.nitro = Math.min(100, st.nitro + 10 * dt);
          }
 
+         if (st.isDrifting) {
+             st.speed = Math.max(st.minSpeed, st.speed - 300 * dt); // Brake effect when drift is held
+         }
+
          if (st.isDrifting && Math.abs(st.bike.lean) > 2 && !isOffroad) {
              const curPts = 5 * dt;
              st.score += curPts;
              stuntPointsGained += curPts;
              st.nitro = Math.min(100, st.nitro + 15 * dt); // Drifting fills nitro heavily
+             st.speed = Math.max(st.minSpeed, st.speed - 500 * dt); // Realistic speed penalty for drifting
              currentStunt = 'DRIFT';
              
              // Drift smoke trail below the tires
@@ -1144,7 +1250,7 @@ export default function App() {
 
          // Traffic Spawning
          st.spawnTimer = (st.spawnTimer || 0) + dt;
-         if (st.spawnTimer > 3.0 / (st.speed / 500 || 1)) {
+         if (st.spawnTimer > (3.0 / diffMult) / (st.speed / 500 || 1)) {
             st.spawnTimer = 0;
             if (Math.random() < 0.6) {
                 // Four-Wheeler
@@ -1173,7 +1279,7 @@ export default function App() {
                    forcedColor = '#7f8c8d'; // gray
                 }
                 
-                const absoluteSpeed = 50 + Math.random() * 200;
+                const absoluteSpeed = (50 + Math.random() * 200) * (1 + (diffMult - 1) * 0.3);
                 let startY = (absoluteSpeed > st.speed) ? (h + 300) : (-obH - 200);
                 
                 const obOffsetX = - (roadW / 2) + (randLane * (roadW / 4)) + Math.random() * (roadW/4 - obW);
@@ -1202,7 +1308,7 @@ export default function App() {
                 const randLane = Math.floor(Math.random() * 4);
                 const aiW = st.bike.w;
                 const aiH = st.bike.h;
-                const absoluteSpeed = 150 + Math.random() * 400;
+                const absoluteSpeed = (150 + Math.random() * 400) * (1 + (diffMult - 1) * 0.4);
                 let startY = (absoluteSpeed > st.speed) ? (h + 300) : (-aiH - 200);
 
                 const aiOffsetX = - (roadW / 2) + (randLane * (roadW / 4)) + Math.random() * (roadW/4 - aiW);
@@ -1247,9 +1353,9 @@ export default function App() {
 
          // Spawn Pickups (Nitro)
          st.pickupTimer = (st.pickupTimer || 0) + dt;
-         if (st.pickupTimer > 2.0 / (st.speed / 500 || 1)) {
+         if (st.pickupTimer > (2.0 * ((diffMult + 1) / 2)) / (st.speed / 500 || 1)) {
             st.pickupTimer = 0;
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.3) {
                const pW = 20;
                const pH = 40;
                const isGolden = Math.random() < 0.25;
@@ -1347,22 +1453,22 @@ export default function App() {
                 const diffX = st.bike.offsetX - ai.offsetX;
                 
                 // If close vertically, adjust speed and steer
-                if (Math.abs(diffY) < 400) {
-                   if (Math.abs(diffX) < 150) {
+                if (Math.abs(diffY) < 400 * ((diffMult + 1) / 2)) {
+                   if (Math.abs(diffX) < 150 * ((diffMult + 1) / 2)) {
                        // Player is near!
                        if (diffY < 0 && diffY > -200) {
                            // AI is ahead, avoid player
-                           ai.offsetX -= Math.sign(diffX) * 100 * dt; 
+                           ai.offsetX -= Math.sign(diffX) * 100 * diffMult * dt; 
                        } else if (diffY >= 0 && diffY < 300) {
                            // AI is behind, aggressively overtake
-                           ai.speed = Math.min(ai.speed + 200 * dt, st.maxSpeed + 200);
-                           ai.offsetX += Math.sign(diffX) * 80 * dt; // Steer into/around player
+                           ai.speed = Math.min(ai.speed + 200 * diffMult * dt, st.maxSpeed + 200);
+                           ai.offsetX += Math.sign(diffX) * 80 * diffMult * dt; // Steer into/around player
                        }
                    }
                 }
                 
                 // Natural weaving
-                ai.offsetX += Math.sin(timestamp / 500 + i) * 30 * dt;
+                ai.offsetX += Math.sin(timestamp / 500 + i) * 30 * diffMult * dt;
 
                 if (ai.offsetX < -roadW/2 + 20) ai.offsetX = -roadW/2 + 20;
                 if (ai.offsetX + ai.w > roadW/2 - 20) ai.offsetX = roadW/2 - ai.w - 20;
@@ -1513,9 +1619,16 @@ export default function App() {
         }
 
       } else if (uiState === 'GAMEOVER') {
+         audio.menuBgmPlaying = false;
          audio.update(false, 0, false);
          if (st.shake > 0) st.shake--;
+      } else if (uiState === 'MENU' || uiState === 'OPTIONS' || uiState === 'EXIT_CONFIRM') {
+         audio.init();
+         if (audio.ctx?.state === 'suspended') audio.ctx.resume();
+         audio.menuBgmPlaying = true;
+         audio.update(false, 0, false);
       } else {
+         audio.menuBgmPlaying = false;
          audio.update(false, 0, false);
       }
 
@@ -1725,10 +1838,97 @@ export default function App() {
       });
       ctx.globalAlpha = 1.0;
 
+      // Dynamic Weather System
+      const weatherModes = ['CLEAR', 'EVENING', 'NIGHT', 'RAIN'];
+      const cycleLength = 30000;
+      
+      const prevWeatherIndex = Math.floor(st.distanceScroll / cycleLength) % weatherModes.length;
+      const nextWeatherIndex = (prevWeatherIndex + 1) % weatherModes.length;
+      
+      const prevWeather = weatherModes[prevWeatherIndex];
+      const nextWeather = weatherModes[nextWeatherIndex];
+      
+      const progress = (st.distanceScroll % cycleLength) / cycleLength; // 0 to 1
+      
+      // We start transitioning to the next weather in the last 15% of the cycle
+      let nextAlpha = 0;
+      let prevAlpha = 1;
+      
+      if (progress > 0.85) {
+          nextAlpha = (progress - 0.85) / 0.15;
+          prevAlpha = 1 - nextAlpha;
+      }
+      
+      const drawWeather = (weatherType: string, alpha: number) => {
+          if (alpha <= 0.01 || weatherType === 'CLEAR') return;
+          
+          if (weatherType === 'EVENING') {
+              const grad = ctx.createLinearGradient(0, h, 0, 0); // Bottom to top
+              grad.addColorStop(0, `rgba(211, 84, 0, ${0.15 * alpha})`);
+              grad.addColorStop(1, `rgba(142, 68, 173, ${0.2 * alpha})`);
+              ctx.fillStyle = grad;
+              ctx.fillRect(0, 0, w, h);
+          } else if (weatherType === 'NIGHT') {
+              ctx.fillStyle = `rgba(5, 5, 15, ${0.4 * alpha})`;
+              ctx.fillRect(0, 0, w, h);
+              
+              const px = getObjAbsoluteRenderX(st.bike.offsetX, st.bike.y);
+              // Headlight and local glow
+              ctx.save();
+              ctx.globalCompositeOperation = 'lighter';
+              ctx.filter = 'blur(25px)';
+              
+              const lightGrad = ctx.createRadialGradient(px + st.bike.w/2, st.bike.y, 10, px + st.bike.w/2, st.bike.y - 400, 250);
+              lightGrad.addColorStop(0, `rgba(255, 255, 220, ${0.4 * alpha})`);
+              lightGrad.addColorStop(1, 'rgba(255, 255, 220, 0)');
+              
+              ctx.fillStyle = lightGrad;
+              ctx.beginPath();
+              ctx.moveTo(px + st.bike.w/2 - 5, st.bike.y);
+              ctx.lineTo(px + st.bike.w/2 - 190, st.bike.y - 400);
+              ctx.lineTo(px + st.bike.w/2 + 190, st.bike.y - 400);
+              ctx.lineTo(px + st.bike.w/2 + 5, st.bike.y);
+              ctx.fill();
+              
+              ctx.filter = 'none'; // reset filter for other glows
+              
+              // Local bike glow
+              const locGrad = ctx.createRadialGradient(px + st.bike.w/2, st.bike.y + st.bike.h/2, 10, px + st.bike.w/2, st.bike.y + st.bike.h/2, 100);
+              locGrad.addColorStop(0, `rgba(255, 120, 80, ${0.3 * alpha})`);
+              locGrad.addColorStop(1, 'rgba(255, 120, 80, 0)');
+              ctx.fillStyle = locGrad;
+              ctx.beginPath();
+              ctx.arc(px + st.bike.w/2, st.bike.y + st.bike.h/2, 100, 0, Math.PI*2);
+              ctx.fill();
+              ctx.restore();
+          } else if (weatherType === 'RAIN') {
+              ctx.fillStyle = `rgba(20, 30, 45, ${0.1 * alpha})`;
+              ctx.fillRect(0, 0, w, h);
+              
+              ctx.strokeStyle = `rgba(150, 200, 255, ${0.5 * alpha})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              // use a large persistent random offset using timestamp
+              const numDrops = 100 * alpha;
+              for(let i=0; i<numDrops; i++) {
+                  const startX = (Math.random() * w + (timestamp/10) % w) % w;
+                  const startY = (Math.random() * h + (timestamp * 2) % h) % h;
+                  ctx.moveTo(startX, startY);
+                  ctx.lineTo(startX - 10, startY + 40);
+              }
+              ctx.stroke();
+          }
+      };
+
+      drawWeather(prevWeather, prevAlpha);
+      drawWeather(nextWeather, nextAlpha);
+
       // Scanline Effect (Retro CRT Overlay)
-      ctx.fillStyle = 'rgba(0,0,0,0.15)';
-      for(let i = 0; i < h; i += 4) {
-          ctx.fillRect(0, i, w, 1);
+      if (scanlinesRef.current) {
+          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+          for(let i = 0; i < h; i += 4) {
+              ctx.fillRect(0, i, w, 1);
+          }
       }
 
       // Telegraphing System for faster entities behind player
@@ -1754,42 +1954,92 @@ export default function App() {
          ctx.textAlign = 'left';
          ctx.fillStyle = '#f1c40f';
          ctx.font = '16px "Press Start 2P"';
-         ctx.fillText(`SCORE:${Math.floor(st.score)}`, 16, 30);
+         ctx.fillText(`SCORE:${Math.floor(st.score)}`, 16, 35);
          
+         ctx.fillStyle = '#fff';
+         ctx.font = '12px "Press Start 2P"';
+         const currentDistance = Math.floor(st.distanceScroll / 100);
+         ctx.fillText(`DIST:${currentDistance}m`, 16, 60);
+
          const speedKmh = Math.floor(st.speed / 4);
          ctx.textAlign = 'right';
          ctx.fillStyle = speedKmh > 240 ? '#e74c3c' : '#fff';
-         ctx.fillText(`${speedKmh}KM/H`, w - 16, 30);
+         ctx.font = '16px "Press Start 2P"';
+         // Position speed to the left of the pause button to avoid overlap
+         ctx.fillText(`${speedKmh}KM/H`, w - 66, 45);
          
          // Nitro bar
          const barW = Math.min(300, w - 80);
          const barX = w / 2 - barW / 2;
-         const barY = 50;
+         const barY = 75; // Lowered to give space for HUD texts
          
+         // Background of nitro bar
          ctx.fillStyle = '#111';
-         ctx.fillRect(barX, barY, barW, 14);
+         ctx.fillRect(barX, barY, barW, 20);
          
-         const nitroRatio = st.nitro / 100;
+         const nitroRatio = Math.max(0, Math.min(1, st.nitro / 100));
+         const maxInnerW = Math.max(0, barW - 4);
+         const activeW = maxInnerW * nitroRatio;
+
          if (st.isNitroActive && st.nitro > 0) {
-            ctx.fillStyle = Math.random() > 0.3 ? '#f39c12' : '#e74c3c'; // Burning effect
-            const activeW = barW * nitroRatio;
-            ctx.fillRect(barX - 2, barY - 2, activeW + 4, 18);
-            // Fire effect at the tip of the bar
-            for(let i=0; i<4; i++) {
-                ctx.beginPath();
-                ctx.arc(barX + activeW + (Math.random()-0.5)*10, barY + 7 + (Math.random()-0.5)*10, Math.random()*6 + 2, 0, Math.PI*2);
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(241, 196, 15, 0.8)' : 'rgba(231, 76, 60, 0.8)';
-                ctx.fill();
-            }
+            // Hot orange-red gradient for the bar, fading extending slightly for smooth blending
+            const fadeExt = Math.min(15, barW - activeW);
+            const grad = ctx.createLinearGradient(barX, barY, barX + activeW + fadeExt, barY);
+            grad.addColorStop(0, '#e74c3c');
+            grad.addColorStop(0.5, '#f39c12');
+            grad.addColorStop(0.8, '#fffacd');
+            grad.addColorStop(1, 'rgba(255, 250, 205, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(barX + 2, barY + 2, activeW + fadeExt, 16);
+            
+            // Cohesive flame inside the tip
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const tipX = barX + 2 + activeW;
+            const tipY = barY + 10; // Vertical center
+            
+            const maxFlameW = Math.min(activeW, 60);
+
+            // Time based waving for smooth animated flame
+            const t = Date.now() / 150;
+            const wave1 = Math.sin(t) * 3;
+            const wave2 = Math.cos(t * 1.5) * 2;
+            const wave3 = Math.sin(t * 2.3) * 1;
+
+            // Outer orange glow
+            ctx.beginPath();
+            ctx.ellipse(tipX - 10 + wave1, tipY, maxFlameW * 0.45, 7.5, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(230, 74, 25, 0.5)';
+            ctx.fill();
+            
+            // Mid yellow
+            ctx.beginPath();
+            ctx.ellipse(tipX - 6 + wave2, tipY, maxFlameW * 0.3, 5, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(251, 192, 45, 0.7)';
+            ctx.fill();
+            
+            // Core white-yellow
+            ctx.beginPath();
+            ctx.ellipse(tipX - 2 + wave3, tipY, maxFlameW * 0.15, 3, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fill();
+
+            ctx.restore();
          } else {
             ctx.fillStyle = '#3498db';
-            ctx.fillRect(barX, barY + 2, barW * nitroRatio, 10);
+            ctx.fillRect(barX + 2, barY + 2, activeW, 16);
          }
          
          ctx.fillStyle = '#fff';
-         ctx.font = '12px "Press Start 2P"';
+         ctx.font = '10px "Press Start 2P"';
          ctx.textAlign = 'center';
-         ctx.fillText('N2O', w/2, barY + 12);
+         ctx.textBaseline = 'middle';
+         // Text shadow for readability
+         ctx.shadowColor = '#000';
+         ctx.shadowBlur = 4;
+         ctx.fillText('N2O', w/2, barY + 10);
+         ctx.shadowBlur = 0; // reset
+         ctx.textBaseline = 'alphabetic'; // reset
 
          if (st.activeStunt.name) {
              ctx.fillStyle = '#e67e22';
@@ -1885,31 +2135,64 @@ export default function App() {
           <h1 className="text-4xl md:text-6xl text-yellow-400 mb-4 tracking-widest text-center" style={{textShadow: '4px 4px 0 #d32f2f'}}>MOTO RUSH</h1>
           <p className="text-sm md:text-base text-gray-300 mb-12 uppercase tracking-wide">Arcade Edition</p>
           
-          <button 
-            onClick={startGame}
-            className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white text-xl md:text-2xl uppercase tracking-wider mb-6 shadow-[4px_4px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
-          >
-            INSERT COIN (PLAY)
-          </button>
-          
-          <button 
-            onClick={() => setUiState('OPTIONS')}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-lg uppercase tracking-wider mb-6 shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
-          >
-            OPTIONS
-          </button>
+          <div className="flex flex-col items-center space-y-6">
+            <button 
+              onClick={startGame}
+              className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white text-xl md:text-2xl uppercase tracking-wider shadow-[4px_4px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
+            >
+              INSERT COIN (PLAY)
+            </button>
+            
+            <button 
+              onClick={() => setUiState('OPTIONS')}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-lg uppercase tracking-wider shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
+            >
+              OPTIONS
+            </button>
 
-          <button 
-             onClick={() => {
-                if(window.confirm('Are you sure you want to exit?')) {
-                    document.body.innerHTML = '<div style="display:flex; height:100dvh; width:100vw; background:black; color:white; align-items:center; justify-content:center; font-family:monospace; font-size:24px;">GAME EXITED.</div>';
-                }
-             }}
-             className="mt-4 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm uppercase tracking-wider shadow-[2px_2px_0_#555] active:translate-y-1 active:shadow-[0_0_0_#555] transition-all"
-          >
-             EXIT GAME
-          </button>
+            <button 
+               onClick={() => {
+                  setUiState('EXIT_CONFIRM');
+               }}
+               className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm uppercase tracking-wider shadow-[2px_2px_0_#555] active:translate-y-1 active:shadow-[0_0_0_#555] transition-all"
+            >
+               EXIT GAME
+            </button>
+          </div>
         </div>
+      )}
+
+      {uiState === 'EXIT_CONFIRM' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-30 text-white backdrop-blur-md">
+          <div className="bg-gray-900 border-4 border-gray-700 p-8 flex flex-col items-center text-center max-w-sm">
+            <h2 className="text-xl md:text-2xl text-yellow-400 mb-8 tracking-widest leading-loose">
+              DO YOU WANT TO<br/>EXIT THE GAME?
+            </h2>
+            <div className="flex space-x-6">
+              <button 
+                onClick={() => {
+                   setUiState('EXITED');
+                   window.close();
+                }}
+                className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white text-lg uppercase shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
+              >
+                OK
+              </button>
+              <button 
+                onClick={() => {
+                   setUiState('MENU');
+                }}
+                className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white text-lg uppercase shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff] transition-all"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {uiState === 'EXITED' && (
+         <div className="absolute inset-0 bg-black z-50"></div>
       )}
 
       {uiState === 'OPTIONS' && (
@@ -1927,6 +2210,15 @@ export default function App() {
                   className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
                 >
                   {isFullscreen ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>SCANLINES</span>
+                <button 
+                  onClick={() => setScanlinesEnabled(prev => !prev)}
+                  className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
+                >
+                  {scanlinesEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
             </div>
@@ -1977,7 +2269,8 @@ export default function App() {
           
           <div className="flex flex-col items-center space-y-4 mb-12 bg-gray-900 p-8 border-4 border-gray-700">
              <div className="text-xl">SCORE: <span className="text-yellow-400">{scoreData.score}</span></div>
-             <div className="text-xl">HIGH: <span className="text-yellow-400">{scoreData.highScore}</span></div>
+             <div className="text-xl">HIGH SCORE: <span className="text-yellow-400">{scoreData.highScore}</span></div>
+             <div className="text-xl">DISTANCE: <span className="text-yellow-400">{scoreData.distance}m</span></div>
           </div>
 
           <div className="flex flex-col space-y-4">
@@ -2000,11 +2293,12 @@ export default function App() {
       {uiState === 'PLAYING' && (
         <>
           <button 
+            id="pauseBtn"
             onClick={() => {
                 setUiState('PAUSED');
                 engineRef.current.running = false; // pause game loop
             }}
-            className="absolute top-14 right-4 w-10 h-10 bg-black/50 border-2 border-white text-white flex justify-center items-center text-sm z-20 pointer-events-auto shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff]"
+            className="absolute top-6 right-4 w-10 h-10 bg-black/50 border-2 border-white text-white flex justify-center items-center text-sm z-20 pointer-events-auto shadow-[2px_2px_0_#fff] active:translate-y-1 active:shadow-[0_0_0_#fff]"
           >
             ||
           </button>
@@ -2054,6 +2348,7 @@ export default function App() {
 
             {/* Drift Button */}
             <button
+              id="driftBtn"
               onPointerDown={(e) => { e.stopPropagation(); engineRef.current.isDrifting = true; }}
               onPointerUp={(e) => { 
                   e.stopPropagation(); 
@@ -2090,6 +2385,15 @@ export default function App() {
                   className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
                 >
                   {isFullscreen ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>SCANLINES</span>
+                <button 
+                  onClick={() => setScanlinesEnabled(prev => !prev)}
+                  className="bg-gray-800 text-yellow-400 px-4 py-2 hover:bg-gray-700 w-24"
+                >
+                  {scanlinesEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
             </div>
