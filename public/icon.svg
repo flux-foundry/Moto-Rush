@@ -1,55 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#111827"/>
-  <!-- Horizon/Sky -->
-  <rect x="0" y="0" width="512" height="180" fill="#030712" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#1a1a1a"/>
   
-  <!-- Sun -->
-  <circle cx="256" cy="180" r="100" fill="#ef4444"/>
-  <!-- Sun stripes -->
-  <rect x="100" y="140" width="312" height="6" fill="#030712"/>
-  <rect x="120" y="155" width="272" height="8" fill="#030712"/>
-  <rect x="140" y="170" width="232" height="12" fill="#030712"/>
+  <!-- Road lines -->
+  <rect x="246" y="0" width="20" height="100" fill="#444"/>
+  <rect x="246" y="160" width="20" height="100" fill="#444"/>
+  <rect x="246" y="320" width="20" height="100" fill="#444"/>
+  <rect x="246" y="480" width="20" height="32" fill="#444"/>
 
-  <!-- Road -->
-  <polygon points="256,180 512,512 0,512" fill="#1f2937"/>
-  <!-- Lane lines -->
-  <polygon points="254,180 258,180 270,512 242,512" fill="#facc15"/>
+  <!-- Bike Shadow -->
+  <rect x="226" y="156" width="80" height="200" rx="15" fill="#000" opacity="0.4"/>
   
-  <!-- Grid lines for retro road effect -->
-  <line x1="0" y1="230" x2="512" y2="230" stroke="#f43f5e" stroke-width="2" opacity="0.4"/>
-  <line x1="0" y1="280" x2="512" y2="280" stroke="#f43f5e" stroke-width="4" opacity="0.6"/>
-  <line x1="0" y1="350" x2="512" y2="350" stroke="#f43f5e" stroke-width="6" opacity="0.8"/>
-  <line x1="0" y1="440" x2="512" y2="440" stroke="#f43f5e" stroke-width="8" opacity="0.9"/>
-  <!-- Diagonal grid lines -->
-  <line x1="256" y1="180" x2="-100" y2="512" stroke="#f43f5e" stroke-width="3" opacity="0.5"/>
-  <line x1="256" y1="180" x2="100" y2="512" stroke="#f43f5e" stroke-width="3" opacity="0.5"/>
-  <line x1="256" y1="180" x2="412" y2="512" stroke="#f43f5e" stroke-width="3" opacity="0.5"/>
-  <line x1="256" y1="180" x2="612" y2="512" stroke="#f43f5e" stroke-width="3" opacity="0.5"/>
+  <!-- Tires -->
+  <rect x="240" y="126" width="32" height="64" rx="8" fill="#111"/> 
+  <rect x="240" y="326" width="32" height="74" rx="8" fill="#111"/>
   
-  <!-- Bike silhouette from behind -->
-  <!-- Smoke -->
-  <circle cx="210" cy="450" r="30" fill="#9ca3af" opacity="0.7"/>
-  <circle cx="240" cy="460" r="35" fill="#d1d5db" opacity="0.8"/>
-  <circle cx="280" cy="455" r="32" fill="#9ca3af" opacity="0.7"/>
-
-  <!-- Back tire -->
-  <rect x="236" y="380" width="40" height="60" rx="10" fill="#000000"/>
-  <rect x="240" y="385" width="32" height="50" rx="5" fill="#1f2937"/>
+  <!-- Bike Body -->
+  <path d="M 216 196 L 296 196 L 286 316 L 226 316 Z" fill="#e53935"/>
+  <path d="M 226 216 L 286 216 L 276 296 L 236 296 Z" fill="#b71c1c"/>
   
-  <!-- Bike body -->
-  <polygon points="256,280 286,340 300,380 212,380 226,340" fill="#dc2626"/>
-  <!-- Exhaust -->
-  <rect x="285" y="360" width="12" height="20" rx="4" fill="#9ca3af"/>
-  <circle cx="291" cy="385" r="6" fill="#111827"/>
+  <!-- Handlebars -->
+  <rect x="196" y="186" width="120" height="12" rx="6" fill="#757575"/>
+  <rect x="186" y="166" width="20" height="40" rx="6" fill="#212121"/>
+  <rect x="306" y="166" width="20" height="40" rx="6" fill="#212121"/>
   
-  <!-- Tail light -->
-  <rect x="246" y="325" width="20" height="8" rx="2" fill="#facc15"/>
-  <!-- Tail light glow (nitro) -->
-  <polygon points="256,335 270,360 256,380 242,360" fill="#3b82f6" opacity="0.9"/>
-  <polygon points="256,345 262,360 256,370 250,360" fill="#ffffff" opacity="0.9"/>
-  
-  <!-- Rider -->
-  <circle cx="256" cy="250" r="28" fill="#111827"/> <!-- Helmet -->
-  <path d="M 226 275 L 286 275 L 300 340 L 212 340 Z" fill="#111827"/> <!-- Leather jacket -->
-  <rect x="240" y="240" width="32" height="12" rx="4" fill="#3b82f6"/> <!-- Visor -->
+  <!-- Rider Helmet -->
+  <circle cx="256" cy="246" r="32" fill="#111"/>
+  <path d="M 230 250 Q 256 266 282 250 L 276 226 L 236 226 Z" fill="#444"/> <!-- Visor -->
+  <!-- Helmet highlight -->
+  <circle cx="248" cy="238" r="8" fill="#333"/>
 </svg>
