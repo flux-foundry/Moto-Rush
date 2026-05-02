@@ -1,12 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#87CEEB"/>
-  <g transform="rotate(-30 16 16) translate(0, 2)">
-    <rect x="8" y="14" width="16" height="4" fill="#e53935"/>
-    <rect x="18" y="12" width="6" height="2" fill="#212121"/>
-    <rect x="10" y="10" width="4" height="6" fill="#e0e0e0"/>
-    <circle cx="9" cy="19" r="4" fill="#212121"/>
-    <circle cx="9" cy="19" r="2" fill="#bdbdbd"/>
-    <circle cx="23" cy="19" r="4" fill="#212121"/>
-    <circle cx="23" cy="19" r="2" fill="#bdbdbd"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Sky background -->
+  <rect width="64" height="64" fill="#87CEEB"/>
+  
+  <g transform="rotate(-30 32 32)">
+    <!-- Bike Body (Red pixel art style) -->
+    <!-- Frame -->
+    <rect x="20" y="32" width="24" height="8" fill="#d32f2f"/>
+    <rect x="18" y="34" width="4" height="6" fill="#b71c1c"/>
+    <rect x="26" y="28" width="12" height="4" fill="#d32f2f"/>
+    <!-- Engine/Chassis -->
+    <rect x="24" y="40" width="16" height="6" fill="#444"/>
+    <rect x="26" y="42" width="12" height="2" fill="#777"/>
+    <!-- Exhaust -->
+    <rect x="14" y="42" width="12" height="2" fill="#999"/>
+    <!-- Handlebar -->
+    <rect x="36" y="24" width="2" height="6" fill="#333"/>
+    <rect x="36" y="24" width="6" height="2" fill="#333"/>
+    <!-- Front wheel fork -->
+    <rect x="38" y="26" width="2" height="14" fill="#777"/>
+    <!-- Front Tire -->
+    <circle cx="42" cy="44" r="6" fill="#222"/>
+    <circle cx="42" cy="44" r="3" fill="#888"/>
+    <!-- Rear Tire -->
+    <circle cx="18" cy="44" r="6" fill="#222"/>
+    <circle cx="18" cy="44" r="3" fill="#888"/>
+    <!-- Rider -->
+    <!-- Legs/Pants (Blue) -->
+    <rect x="26" y="32" width="6" height="10" fill="#2980b9"/>
+    <!-- Body/Shirt (Dark) -->
+    <rect x="26" y="20" width="8" height="12" fill="#222"/>
+    <!-- Arm -->
+    <rect x="28" y="22" width="10" height="2" fill="#222"/>
+    <rect x="36" y="22" width="2" height="4" fill="#222"/>
+    <!-- Helmet (Yellow) -->
+    <circle cx="30" cy="18" r="4" fill="#f1c40f"/>
+    <!-- Visor -->
+    <rect x="31" y="16" width="3" height="3" fill="#111"/>
   </g>
+
+  <!-- Speed lines -->
+  <rect x="8" y="12" width="16" height="1" fill="#fff" opacity="0.6"/>
+  <rect x="16" y="20" width="8" height="1" fill="#fff" opacity="0.6"/>
+  <rect x="4" y="52" width="12" height="1" fill="#fff" opacity="0.6"/>
 </svg>
